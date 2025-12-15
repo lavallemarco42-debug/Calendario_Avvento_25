@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Il Nostro Avvento</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+            background-color: #0f172a;
+        }
+
+        /* SFONDO FISSO */
+        .bg-image {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -2;
+            background: radial-gradient(circle at 50% 0%, #331f2d 0%, #0f172a 70%);
+        }
+
+        /* PIOGGIA DI CUORI */
+        .hearts-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: -1;
+            background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' fill='%23e11d48' fill-opacity='0.2'/%3E%3C/svg%3E");
+            background-size: 60px 60px;
+            animation: floatingHearts 60s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes floatingHearts {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 -1000px; }
+        }
+
+        /* SVG Path */
+        #path-svg-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1;
+        }
+        
+        path.connection-line {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.2);
+            stroke-width: 4px;
+            stroke-dasharray: 12, 12;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 6px rgba(225, 29, 72, 0.4));
+        }
+
+        /* Layout */
+        .game-map {
+            position: relative; z-index: 10;
+            width: 100%; max-width: 500px;
+            margin: 0 auto;
+            padding: 60px 20px 120px 20px;
+            display: flex; flex-direction: column; gap: 0px; 
+        }
+
+        .map-row {
+            display: flex; justify-content: space-between; align-items: flex-start; 
+            width: 100%; position: relative; margin-bottom: -20px; padding-bottom: 80px; 
+        }
+
+        .map-row.even { flex-direction: row; }
+        .map-row.odd { flex-direction: row-reverse; }
+
+        .card-placeholder {
+            width: 100px; display: flex; justify-content: center; align-items: center; position: relative;
+        }
+        @media (min-width: 640px) { .card-placeholder { width: 130px; } }
+
+        .map-row .card-placeholder:nth-child(1) { margin-top: 0px; }
+        .map-row .card-placeholder:nth-child(2) { margin-top: 60px; }
+        .map-row .card-placeholder:nth-child(3) { margin-top: 120px; }
+
+        /* Card */
+        .gift-card-wrapper {
+            width: 85px; height: 85px; perspective: 1000px; cursor: pointer; z-index: 20;
+        }
+        @media (min-width: 640px) { .gift-card-wrapper { width: 110px; height: 110px; } }
+
+        .gift-card-inner {
+            width: 100%; height: 100%; position: relative;
+            transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transform-style: preserve-3d;
+            border-radius: 50%;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+        }
+
+        .gift-card-inner, .card-face { border-radius: 35% !important; }
+
+        .gift-card-wrapper.open .gift-card-inner { transform: rotateY(180deg); }
+
+        .card-face {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            overflow: hidden; border: 2px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .card-front {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+            backdrop-filter: blur(8px); transition: all 0.3s ease;
+        }
+
+        .gift-card-wrapper.current .card-front {
+            border-color: #e11d48;
+            box-shadow: 0 0 20px rgba(225, 29, 72, 0.5); 
+            animation: pulse-glow 2s infinite;
+        }
+        
+        .gift-card-wrapper:hover .card-front {
+            transform: translateY(-5px) scale(1.05);
+            background: rgba(225, 29, 72, 0.2); border-color: #e11d48;
+        }
+
+        /* Retro della Card Generico */
+        .card-back { 
+            background: #fff; 
+            transform: rotateY(180deg); 
+        }
+        
+        /* Stile specifico per il retro delle Frasi */
+        .card-back-quote {
+            background-color: #be123c; /* Rosso opaco scuro */
+            color: #fff0f5;
+            padding: 8px;
+            text-align: center;
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 0.65rem; /* Testo piccolo per stare nella casella */
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        /* Stile specifico per Immagini (Foto/Canzoni) */
+        .card-back-img {
+            padding: 0;
+            background: black;
+        }
+        .card-back-img img { width: 100%; height: 100%; object-fit: cover; }
+
+        .day-number {
+            font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700;
+            color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(225, 29, 72, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+        }
+
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+
+        #modal { backdrop-filter: blur(10px); }
+
+        /* Stile per il contenuto Quote nel Modale */
+        #modal-quote-container {
+            display: none; /* Nascosto di default */
+            width: 100%;
+            height: 100%;
+            background-color: #be123c; /* Rosso opaco scuro */
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        #modal-quote-text {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 1.5rem;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center">
+
+    <div class="bg-image"></div>
+    <div class="hearts-overlay"></div>
+
+    <header class="w-full pt-12 pb-0 text-center z-10 relative px-4">
+        <div class="inline-block px-4 py-1 rounded-full bg-white/10 border border-white/20 mb-4 backdrop-blur-md shadow-lg">
+            <p class="text-rose-200 text-xs tracking-[0.2em] uppercase font-bold">Avvento 2025</p>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2" style="font-family: 'Playfair Display', serif; text-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+            Il Nostro Avvento
+        </h1>
+        <p class="text-slate-300 text-sm mt-2 font-medium" style="text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Una sorpresa al giorno...</p>
+    </header>
+
+    <div class="relative w-full max-w-4xl mx-auto mb-32 px-4">
+        <svg id="path-svg-container">
+            <path id="connection-path" class="connection-line" d="" />
+        </svg>
+
+        <div id="game-map" class="game-map">
+            <!-- JS inserirà le righe e le caselle qui -->
+        </div>
+    </div>
+
+    <!-- Modale -->
+    <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-6 opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-900 border border-white/10 rounded-[32px] p-1 max-w-sm w-full shadow-2xl transform scale-95 transition-transform duration-300 overflow-hidden relative" id="modal-panel">
+            <div class="absolute inset-0 bg-gradient-to-b from-rose-500/10 to-transparent pointer-events-none"></div>
+            
+            <div class="relative bg-slate-800/90 backdrop-blur-xl rounded-[28px] overflow-hidden">
+                <button onclick="closeModal()" class="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center bg-black/40 text-white rounded-full backdrop-blur-md hover:bg-black/60 transition text-2xl">
+                    &times;
+                </button>
+                <div class="aspect-[4/3] w-full relative group bg-black">
+                    <!-- Immagine (per Foto e Canzoni) -->
+                    <img id="modal-img" src="" class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                    
+                    <!-- Container Frase (per Frasi) -->
+                    <div id="modal-quote-container" class="absolute inset-0 w-full h-full">
+                        <p id="modal-quote-text"></p>
+                    </div>
+
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent pointer-events-none"></div>
+                    <!-- TITOLO RIMOSSO -->
+                </div>
+                <div class="p-6 text-center">
+                    <p id="modal-desc" class="text-slate-200 font-light leading-relaxed text-lg italic"></p>
+                    
+                    <button id="modal-action-btn" onclick="handleModalAction()" class="mt-8 w-full py-4 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white rounded-2xl font-bold tracking-wide transition shadow-lg shadow-rose-500/25 transform hover:-translate-y-1">
+                        CHIUDI 🩵
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAZIONE DATI
+        
+        const gifts = [
+            // Giorno 8: FOTO
+            { 
+                day: 8, type: 'memory', title: "Fotina", 
+                desc: "I tuoi occhi", 
+                img: "urbex.jpg" 
+            },
+            // Giorno 9: CANZONE - CRAZY LOVE
+            { 
+                day: 9, type: 'song', title: "Canzoncina", 
+                desc: "Crazy Love - Marracash", 
+                img: "crazy_love.jfif", 
+                link: "https://open.spotify.com/search/Crazy%20Love" 
+            },
+            // Giorno 10: FRASE
+            { 
+                day: 10, type: 'quote', title: "Frasina", 
+                desc: "Quegli occhi così grandi, c'è spazio per entrambi", 
+                img: "" 
+            },
+
+            // Giorno 11: FOTO
+            { 
+                day: 11, type: 'memory', title: "Fotina", 
+                desc: "Muah", 
+                img: "bus_stop.jpg" 
+            },
+            // Giorno 12: CANZONE - PRINCESA (Link ID fisso per app)
+            { 
+                day: 12, type: 'song', title: "Canzoncina", 
+                desc: "Princesa - Luck Ra", 
+                img: "princesa.jfif", 
+                link: "https://open.spotify.com/search/Princesa%20Luck%20Ra" 
+            },
+            // Giorno 13: FRASE
+            { 
+                day: 13, type: 'quote', title: "Frasina", 
+                desc: "Princesa, por las noches sueño que me besas", 
+                img: "" 
+            },
+
+            // Giorno 14: FOTO
+            { 
+                day: 14, type: 'memory', title: "Fotina", 
+                desc: "Troppo bella", 
+                img: "home.jpg" 
+            },
+            // Giorno 15: CANZONE - RATHER LIE (Aggiornato)
+            { 
+                day: 15, type: 'song', title: "Canzoncina", 
+                desc: "RATHER LIE - Playboi Carti", 
+                img: "rather_lie.jfif", 
+                link: "https://open.spotify.com/search/RATHER%20LIE" 
+            },
+            // Giorno 16: FRASE (Aggiornato)
+            { 
+                day: 16, type: 'quote', title: "Frasina", 
+                desc: "Anything she want, I can get it done", 
+                img: "" 
+            },
+
+            // Giorno 17: FOTO
+            { 
+                day: 17, type: 'memory', title: "Fotina", 
+                desc: "Il tuo sorriso illumina tutto", 
+                img: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=600&q=80" 
+            },
+            // Giorno 18: CANZONE - FUCK 3X
+            { 
+                day: 18, type: 'song', title: "Canzoncina", 
+                desc: "fuck ex - thasup", 
+                img: "fuck_3x.jfif", 
+                link: "https://open.spotify.com/search/fuck%203x" 
+            },
+            // Giorno 19: FRASE
+            { 
+                day: 19, type: 'quote', title: "Frasina", 
+                desc: "Ti amerò per sempre, fuck alle mie ex", 
+                img: ""
+            },
+
+            // Giorno 20: FOTO
+            { 
+                day: 20, type: 'memory', title: "Fotina", 
+                desc: "Noiii", 
+                img: "street_mirror_2.jpg" 
+            },
+            // Giorno 21: CANZONE - NIGHTS LIKE THIS
+            { 
+                day: 21, type: 'song', title: "Canzoncina", 
+                desc: "NIGHTS LIKE THIS - The Kid Laroi", 
+                img: "nights_like_this.jfif", 
+                link: "https://open.spotify.com/search/NIGHTS%20LIKE%20THIS" 
+            },
+            // Giorno 22: FRASE
+            { 
+                day: 22, type: 'quote', title: "Frasina", 
+                desc: "I just need you now", 
+                img: "" 
+            },
+
+            // Giorno 23: FOTO
+            { 
+                day: 23, type: 'memory', title: "Fotina", 
+                desc: "Quasi Natale...", 
+                img: "https://images.unsplash.com/photo-1512389142860-9c449e58a543?auto=format&fit=crop&w=600&q=80" 
+            },
+            // Giorno 24: CANZONE - TUTTO QUESTO E NIENTE
+            { 
+                day: 24, type: 'song', title: "Canzoncina", 
+                desc: "TUTTO QUESTO NIENTE - Marracash", 
+                img: "tutto_questo_niente.jfif", 
+                link: "https://open.spotify.com/search/TUTTO%20QUESTO%20NIENTE" 
+            },
+            // Giorno 25: FRASE (Finale)
+            { 
+                day: 25, type: 'quote', title: "Frasina", 
+                desc: "Mentre quello di cui abbiamo davvero bisogno è invisibile", 
+                img: "" 
+            }
+        ];
+
+        const mapContainer = document.getElementById('game-map');
+        const modal = document.getElementById('modal');
+        const modalPanel = document.getElementById('modal-panel');
+        const modalBtn = document.getElementById('modal-action-btn');
+        const modalImg = document.getElementById('modal-img');
+        const modalQuoteContainer = document.getElementById('modal-quote-container');
+        const modalQuoteText = document.getElementById('modal-quote-text');
+        
+        const STORAGE_KEY = 'marco_advent_calendar_opened';
+        
+        let currentGiftLink = null;
+
+        function getOpenedDays() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            return stored ? JSON.parse(stored) : [];
+        }
+
+        function saveOpenedDay(day) {
+            const opened = getOpenedDays();
+            if (!opened.includes(day)) {
+                opened.push(day);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(opened));
+            }
+        }
+
+        function initMap() {
+            let currentRowDiv = null;
+            let rowCount = 0;
+            const openedDays = getOpenedDays();
+
+            gifts.forEach((gift, index) => {
+                if (index % 3 === 0) {
+                    currentRowDiv = document.createElement('div');
+                    currentRowDiv.className = `map-row ${rowCount % 2 === 0 ? 'even' : 'odd'}`;
+                    mapContainer.appendChild(currentRowDiv);
+                    rowCount++;
+                }
+
+                const placeholder = document.createElement('div');
+                placeholder.className = 'card-placeholder';
+
+                const card = document.createElement('div');
+                card.className = 'gift-card-wrapper';
+                card.id = `card-${index}`;
+
+                if (openedDays.includes(gift.day)) {
+                    card.classList.add('open');
+                }
+
+                const today = new Date().getDate();
+                const month = new Date().getMonth();
+                if(month === 11 && today === gift.day && !openedDays.includes(gift.day)) {
+                    card.classList.add('current');
+                }
+
+                // ICONE PER TIPO
+                let icon = ''; 
+                if(gift.type === 'song') icon = '🎵';
+                if(gift.type === 'quote') icon = '💌';
+                if(gift.type === 'memory') icon = '📸';
+                if(gift.day === 25) icon = '🎄';
+
+                // Costruzione HTML differenziata per il RETRO
+                let backContent = '';
+                
+                if(gift.type === 'quote') {
+                    backContent = `
+                        <div class="card-face card-back card-back-quote">
+                            <p>"${gift.desc}"</p>
+                        </div>
+                    `;
+                } else if (gift.type === 'song') {
+                    backContent = `
+                        <div class="card-face card-back card-back-img">
+                            <img src="${gift.img}" loading="lazy" alt="Copertina Album">
+                        </div>
+                    `;
+                } else {
+                    backContent = `
+                        <div class="card-face card-back card-back-img">
+                            <img src="${gift.img}" loading="lazy" alt="Foto Ricordo">
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="gift-card-inner">
+                        <div class="card-face card-front">
+                            <span class="day-number">${gift.day}</span>
+                            <span class="text-white/80 text-lg mt-0 drop-shadow-md">${icon}</span>
+                        </div>
+                        ${backContent}
+                    </div>
+                `;
+
+                card.onclick = () => checkAndOpen(gift, card);
+                placeholder.appendChild(card);
+                currentRowDiv.appendChild(placeholder);
+            });
+
+            setTimeout(drawSinuousPath, 300);
+            window.addEventListener('resize', drawSinuousPath);
+        }
+
+        function drawSinuousPath() {
+            const svg = document.getElementById('connection-path');
+            const cards = [];
+            for(let i=0; i<gifts.length; i++) {
+                const el = document.getElementById(`card-${i}`);
+                if(el) cards.push(el);
+            }
+            if (cards.length === 0) return;
+
+            const svgRect = document.getElementById('path-svg-container').getBoundingClientRect();
+            let d = "";
+
+            for (let i = 0; i < cards.length - 1; i++) {
+                const rect1 = cards[i].getBoundingClientRect();
+                const rect2 = cards[i+1].getBoundingClientRect();
+
+                const x1 = rect1.left + rect1.width / 2 - svgRect.left;
+                const y1 = rect1.top + rect1.height / 2 - svgRect.top;
+                const x2 = rect2.left + rect2.width / 2 - svgRect.left;
+                const y2 = rect2.top + rect2.height / 2 - svgRect.top;
+
+                if (i === 0) d += `M ${x1} ${y1}`;
+
+                const cp1x = x1;
+                const cp1y = y1 + (y2 - y1) * 0.5;
+                const cp2x = x2;
+                const cp2y = y2 - (y2 - y1) * 0.5;
+
+                d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+            }
+            svg.setAttribute('d', d);
+        }
+
+        function checkAndOpen(gift, el) {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentDay = now.getDate();
+            const currentHour = now.getHours();
+
+            // DEBUG MODE: Scommenta per test
+            // const currentMonth = 11; const currentDay = 25; const currentHour = 10;
+
+            let canOpen = false;
+            let msg = "";
+
+            if (currentMonth === 11) {
+                if (currentDay > gift.day) canOpen = true;
+                else if (currentDay === gift.day) {
+                    if (currentHour >= 7) canOpen = true;
+                    else msg = "Shh! Aspetta le 07:00!";
+                } else msg = `Ah sgamata! È per il ${gift.day} Dicembre!`;
+            } else msg = "Non è ancora Dicembre!";
+
+            if (el.classList.contains('open')) {
+                openModal(gift);
+                return;
+            }
+
+            if (canOpen) {
+                el.classList.add('open');
+                saveOpenedDay(gift.day);
+                el.classList.remove('current');
+                setTimeout(() => openModal(gift), 800);
+            } else {
+                alert(msg);
+                el.classList.add('shake');
+                setTimeout(() => el.classList.remove('shake'), 400);
+            }
+        }
+
+        function openModal(gift) {
+            const descEl = document.getElementById('modal-desc');
+            
+            // GESTIONE VISUALIZZAZIONE E TESTI
+            if (gift.type === 'quote') {
+                modalImg.style.display = 'none';
+                modalQuoteContainer.style.display = 'flex';
+                // La frase vera nel box rosso
+                modalQuoteText.innerText = `"${gift.desc}"`;
+                
+                // La scritta "Frasina" sotto il box
+                descEl.innerText = "Frasina";
+                descEl.style.fontStyle = 'italic';
+                descEl.style.textTransform = 'none';
+                descEl.style.letterSpacing = 'normal';
+                descEl.style.fontSize = '1.125rem';
+                descEl.style.color = '#e2e8f0'; 
+            } else {
+                modalImg.src = gift.img;
+                modalImg.style.display = 'block';
+                modalQuoteContainer.style.display = 'none';
+                
+                // Descrizione specifica sotto il box (es. Titolo Canzone)
+                descEl.innerText = gift.desc;
+                descEl.style.fontStyle = 'italic';
+                descEl.style.textTransform = 'none';
+                descEl.style.letterSpacing = 'normal';
+                descEl.style.fontSize = '1.125rem';
+                descEl.style.color = '#e2e8f0';
+            }
+
+            // GESTIONE PULSANTE LINK
+            currentGiftLink = gift.link || null;
+            
+            if (currentGiftLink) {
+                modalBtn.innerText = "ASCOLTA ORA 🎵";
+                modalBtn.classList.remove('from-gray-600', 'to-gray-700');
+                modalBtn.classList.add('from-rose-500', 'to-pink-600');
+            } else {
+                modalBtn.innerText = "CHIUDI 🩵";
+                modalBtn.classList.remove('from-rose-500', 'to-pink-600');
+                modalBtn.classList.add('from-gray-600', 'to-gray-700');
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalPanel.classList.remove('scale-95');
+                modalPanel.classList.add('scale-100');
+            }, 10);
+        }
+
+        function handleModalAction() {
+            if (currentGiftLink) {
+                window.open(currentGiftLink, '_blank');
+            } else {
+                closeModal();
+            }
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalPanel.classList.remove('scale-100');
+            modalPanel.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        initMap();
+
+    </script>
+</body>
+</html>
